@@ -1,0 +1,73 @@
+@startuml
+
+actor Student as student
+
+participant TakeExamUI as ui
+participant TakeExamController as ctrl
+
+participant RegularExamRepository as exam_repo
+
+participant GrammarContext as ctx
+participant GrammarToolFactory as grepo
+
+participant GradeExamService as grader_svc
+participant CorrectedExamDTO as corrected_dto
+
+participant RegularExamResult as result
+participant RegularExamResultRepository as result_repo
+
+participant ExamResultDTOMapper as result_mapper
+participant ExamResultDTO as result_dto
+
+student --> ui : submits resolution
+activate ui
+    ui --> ctrl : examGrading(resolutionDTO)
+    activate ctrl
+        ctrl --> exam_repo : ofIdentity()
+        activate exam_repo
+            exam_repo --> ctrl : exam
+        deactivate exam_repo
+
+        ctrl --> ctx : grammarTools()
+        activate ctx
+            ctx --> grepo : examGraderService()
+            activate grepo
+                grepo --> grader_svc : create()
+                activate grader_svc
+                deactivate grader_svc
+            deactivate grepo
+        deactivate ctx
+
+        ctrl --> grader_svc : correctExam(exam)
+        activate grader_svc
+            note right: exam correction done \nby an external service
+            grader_svc --> corrected_dto : create()
+            activate corrected_dto
+            deactivate corrected_dto
+            grader_svc --> ctrl : resultDTO
+        deactivate grader_svc
+
+        ctrl --> result : create()
+        activate result
+        deactivate result
+
+        ctrl --> result_repo : save(result)
+        activate result_repo
+        deactivate result_repo
+
+        ' NOTE: double-check what to do w/ feedback
+
+        ctrl --> result_mapper : toDTO(result)
+        activate result_mapper
+            result_mapper --> result_dto : create()
+            activate result_dto
+            deactivate result_dto
+            result_mapper --> ctrl : resultDTO
+        deactivate result_mapper
+
+        ctrl --> ui : resultDTO
+    deactivate ctrl
+    ui --> student : present result
+deactivate ui
+
+@enduml

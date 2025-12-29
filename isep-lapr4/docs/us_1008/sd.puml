@@ -1,0 +1,101 @@
+@startuml
+
+actor Student as user
+participant EnrollmentRequestUI as ui
+participant EnrollmentRequestController as ctrl
+
+participant MyUserService as user_svc
+participant Student as student
+participant ListCoursesService as courses_svc
+
+participant PersistenceContext as ctx
+participant RepositoryFactory as rep_fac
+participant CourseRepository as course_repo
+participant EnrollmentRequestRepository as enrollment_request_repo
+participant EnrollmentRepository as enrollment_repo
+
+participant EnrollmentRequest as enrollment_request
+
+user --> ui: enter
+
+activate ui
+    ui --> ctrl: create()
+    activate ctrl
+        ctrl --> ctx : repositories()
+        activate ctx
+            ctx --> rep_fac : create()
+            activate rep_fac
+            deactivate rep_fac
+        deactivate ctx
+
+        ctrl --> rep_fac : courses()
+        activate rep_fac
+            rep_fac --> course_repo : create()
+            activate course_repo
+            deactivate course_repo
+        deactivate rep_fac
+
+        ctrl --> rep_fac : enrollmentRequests()
+        activate rep_fac
+            rep_fac --> enrollment_request_repo : create()
+            activate enrollment_request_repo
+            deactivate enrollment_request_repo
+        deactivate rep_fac
+    deactivate ctrl
+
+    ui --> ctrl : getEnrollableCourses()
+    activate ctrl
+        ctrl --> user_svc : currentStudent()
+        activate user_svc
+            user_svc --> student : get()
+            activate student
+            deactivate student
+            note right : student obtained via the framework's\nAuthz package + StudentRepository
+            user_svc --> ctrl : student
+        deactivate user_svc
+
+        ctrl --> courses_svc : studentCanRequestEnroll(student)
+        activate courses_svc
+            courses_svc --> course_repo : enrollable()
+            activate course_repo
+            deactivate course_repo
+
+            courses_svc --> enrollment_repo : coursesOfEnrolledStudent(student)
+            activate enrollment_repo
+            deactivate enrollment_repo
+
+            courses_svc --> courses_svc : calculate difference
+            courses_svc --> ctrl : courses
+        deactivate courses_svc
+
+        ctrl --> ui : courses
+    deactivate ctrl
+
+    ui --> user : show courses
+deactivate ui
+
+user --> ui: selects course from list
+activate ui
+    ui --> ctrl : createEnrollmentRequest(course)
+    activate ctrl
+        ctrl --> user_svc : currentStudent()
+        activate user_svc
+            user_svc --> student : get()
+            activate student
+            deactivate student
+            note right : student obtained via the framework's\nAuthz package + StudentRepository
+            user_svc --> ctrl : student
+        deactivate user_svc
+
+        ctrl ---> enrollment_request : enrollmentRequest = new EnrollmentRequest(course, student)
+        activate enrollment_request
+        deactivate enrollment_request
+
+        ctrl --> enrollment_request_repo : save(enrollmentRequest)
+        activate enrollment_request_repo
+        deactivate enrollment_request_repo
+    deactivate ctrl
+
+    ui --> user : show success message
+deactivate ui
+@enduml

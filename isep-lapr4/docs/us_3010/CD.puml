@@ -1,0 +1,151 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+skinparam classAttributeIconSize 0
+skinparam padding 2
+skinparam ranksep 100
+skinparam classFontSize 18
+
+
+interface Runnable
+interface MessageProtocol
+
+interface BoardRepository
+{
+  +listBoardsUserOwnsNotArchived(SystemUser owner)
+  +listBoardsUserOwnsArchived(SystemUser owner)
+ }
+
+abstract class AbstractUI
+{
+}
+
+class ArchiveBoardUI
+{
+    # doShow()
+    + headline()
+}
+
+class ArchiveBoardController
+{
+
+ +listBoardsUserOwnsNotArchived()
+ +archivedBoards(String boardTitle)
+ +closeSocket()
+}
+
+class ArchiveBoardHandler
+{
++run()
+-sendBoardOwned()
+}
+
+class MenuRequest
+{
++run()
+}
+
+class Thread
+{
+}
+
+interface Runnable
+interface MessageProtocol
+
+class SBProtocol
+{
+ + setCode(int code)
+ + setContentFromString(String cStr)
+ + send(DataOutputStream out)
+ + getContentAsString()
+
+}
+
+class JpaBoardRepository
+{
++listBoardsUserOwnsNotArchived(SystemUser owner)
++listBoardsUserOwnsArchived(SystemUser owner)
+}
+
+class Client
+{
+    +getUserLoggedIn()
+}
+
+class BoardService
+{
+ +listBoardsUserOwnsNotArchived(SystemUser owner)
+ +listBoardsUserOwnsArchived(SystemUser owner)
+}
+
+enum BoardState
+{
+    +CREATED
+    +SHARED
+    +ARCHIVED
+}
+
+class Board
+{
+    +archiveBoard()
+}
+
+class SBPClientApp
+
+class SBPServerApp
+{
++{static}Map<InetAddress, Client> activeAuths
++{static}Map<BoardTitle, Board> boards
+
+}
+
+abstract class BaseApplication
+
+class MainMenu
+{
+-buildMainMenu()
+}
+
+SBPServerApp o-- Client
+'extends
+ArchiveBoardUI --|> AbstractUI
+MenuRequest --|> Thread
+SBPClientApp -up-|> BaseApplication
+SBPServerApp -up-|> BaseApplication
+MainMenu --|> AbstractUI
+
+'depends on(imports)
+ArchiveBoardUI --> "1" ArchiveBoardController
+ArchiveBoardController --> "*" SBProtocol
+
+ArchiveBoardHandler --> "*" SBProtocol
+ArchiveBoardHandler -up-> "1" BoardRepository
+
+
+
+ArchiveBoardHandler --> "1" BoardService
+
+BoardService  --> "1" BoardRepository
+BoardService  --> "*" Board
+
+ArchiveBoardHandler --> "*" Board
+
+Board --> BoardState
+
+MenuRequest --> "1" SBProtocol
+MainMenu --> "1" ArchiveBoardUI
+SBPClientApp --> "1" MainMenu
+SBPServerApp --> "1" MenuRequest
+MenuRequest --> "1" ArchiveBoardHandler
+
+
+
+'implements
+ArchiveBoardHandler ..|> Runnable
+Thread ..|> Runnable
+SBProtocol ..|> MessageProtocol
+JpaBoardRepository ..|> BoardRepository
+
+
+
+@enduml

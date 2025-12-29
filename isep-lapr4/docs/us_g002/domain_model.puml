@@ -1,0 +1,474 @@
+@startuml
+
+skinparam linetype ortho
+skinparam Shadowing False
+
+skinparam class {
+    BackgroundColor<<Entity>> Moccasin
+    BackgroundColor<<value object>> Azure
+    BackgroundColor<<Event>> MediumAquaMarine
+    BackgroundColor<<Service>> SkyBlue
+    ArrowColor DarkSlateGrey
+}
+
+skinparam package {
+    BackgroundColor PowderBlue
+    packageLayout grid
+    packageColumn 2
+}
+
+
+package UserPackage <<Rectangle>>{
+
+    package SYSTEMUSER <<Aggregate>> {
+        Class SystemUser <<root>><<Entity>>
+        class Password <<value object>>
+        class Email <<value object>>
+
+        SystemUser -> Password
+        SystemUser -> Email
+    }
+
+
+    package TEACHER <<Aggregate>> {
+        entity Teacher <<root>> <<Entity>>{
+            - FullName
+            - ShortName
+            - DateOfBirth
+            - TaxPayerNumber
+        }
+        class Acronym <<value object>>
+
+        Teacher  ->  Acronym
+    }
+
+    package MANAGER <<Aggregate>> {
+        entity Manager <<root>> <<Entity>>{
+            - FullName
+            - ShortName
+            - DateOfBirth
+            - TaxPayerNumber
+
+
+        }
+        class ManagerId <<value object>>
+
+        Manager  ->  ManagerId
+    }
+
+
+    package STUDENT <<Aggregate>> {
+        entity Student <<root>> <<Entity>>{
+            - FullName
+            - ShortName
+            - DateOfBirth
+            - TaxPayerNumber
+        }
+        class MecanographicNumber <<value object>>
+
+        Student  ->  MecanographicNumber
+    }
+
+    SystemUser -down-> "0..1" Manager
+    SystemUser -down-> "0..1" Teacher
+    SystemUser -down-> "0..1" Student
+}
+
+package CoursePackage <<Rectangle>> {
+    package COURSE <<Aggregate>> {
+        entity Course <<root>> <<Entity>>
+
+        class CourseID <<value object>>
+
+        class CourseDescription <<value object>>
+
+        class CourseDuration <<value object>>{
+            - startDate
+            - endDate
+        }
+
+        enum CourseState <<enum>>{
+            - closed
+            - open
+            - enroll
+            - inProgress
+            - created
+        }
+
+        class CourseCapacity <<value object>> {
+            -minStudents
+            -maxStudents
+        }
+
+        Course  -down-> CourseID
+        Course  -up->  CourseState
+        Course  -down->  CourseDescription
+        Course  -down-> CourseCapacity
+
+        Course -> CourseDuration
+    }
+
+    package STAFF <<Aggregate>>{
+        entity StaffMember <<Entity>>
+    }
+    Course <-down-- StaffMember
+
+    package COURSE_ACCESS <<Aggregate>>{
+        entity Enrollment <<root>> <<Entity>>
+    }
+    Student <-- Enrollment : enrolls
+
+    package COURSE_ENROLLMENT_REQUEST <<Aggregate>>{
+
+        entity EnrollmentRequest <<root>> <<Entity>>
+        entity DeniedReason <<value object>>
+
+        enum RequestState <<enum>>{
+            - approved
+            - denied
+            - pending
+        }
+
+        EnrollmentRequest "1" -> "0..1"DeniedReason
+        EnrollmentRequest -> RequestState
+        EnrollmentRequest  o-- "*" Student
+        EnrollmentRequest -left-> Course
+    }
+
+    Teacher "*" <-up-- "1" StaffMember
+    Teacher "1" <-up-- "0..*" Course : teacher in charge
+
+    class CourseManagementService <<Service>>
+    Course -> CourseManagementService
+    note top: responsible for enrolling students in a course,\n either by bulk import or by individual request
+
+    Course *- "0..*" Enrollment
+}
+
+package ExamPackage <<Rectangle>> {
+
+    class ValidateFormativeExamSpecification <<Service>>
+    note bottom of ValidateFormativeExamSpecification: validate formative exams based on formativeExamSpecification
+
+    class ValidateRegularExamSpecification <<Service>>
+    note bottom of ValidateRegularExamSpecification: validate regular exams based on regularExamSpecification
+
+    class ValidateQuestionSpecification <<Service>>
+    note bottom of ValidateQuestionSpecification: validate questions based on questionSpecification
+
+    package REGULAR_EXAM <<Aggregate>> {
+
+        entity RegularExam <<root>> <<Entity>>
+
+        class RegularExamSpecification <<value object>>
+
+        class ExamDate <<value object>>
+
+    }
+
+'code duplied???
+'both types of exams need to have the exameSection->
+'this exam section should store the questions for that exame(??)
+
+
+    package FORMATIVE_EXAM <<Aggregate>> {
+        entity FormativeExam <<root>> <<entity>>
+        note right: feedback and grading are always on submission
+
+        class FormativeExamSpecification <<value object>>
+
+    }
+
+    package QUESTION <<Aggregate>> {
+        entity Question <<root>> <<entity>> {
+            -description
+            -solution
+        }
+
+        class QuestionSpecification <<value object>>
+
+        /'enum QuestionType <<enum>> {
+            - matching
+            - multipleChoices
+            - shortAnswer
+            - numerical
+            - selectMissingWord
+            - true/False
+        }'/
+    }
+
+    package EXAM_RESULT <<Aggregate>> {
+        entity RegularExamResult <<root>> <<Entity>>{
+            - period
+        }
+        enum ExamFeedbackProperties{
+            - NONE
+            - ON_SUBMISSION
+            - AFTER_CLOSING
+        }
+        enum ExamGradeProperties{
+            - NONE
+            - ON_SUBMISSION
+            - AFTER_CLOSING
+        }
+
+        class ExamGrade <<value object>>
+
+        RegularExamResult -> ExamFeedbackProperties
+        RegularExamResult -> ExamGradeProperties
+
+    }
+
+
+    class GenerateFormativeExam <<Service>>
+
+    GenerateFormativeExam --> FormativeExamSpecification
+    GenerateFormativeExam --> QuestionSpecification
+
+    class ExamGradingService <<Service>>
+    class ParserExamService <<Service>>
+
+    RegularExam ---> ExamDate
+    RegularExam -down--> RegularExamSpecification
+
+    'Question  -up-> QuestionType
+    Course "1" <- Question
+    Question *- QuestionSpecification
+
+
+    ExamGradingService "1" -up-> "1" RegularExamResult
+    ExamGradingService "1" -up-> "1" RegularExam
+    ParserExamService -> RegularExamSpecification
+
+    RegularExamResult -up-> ExamGrade
+    RegularExamResult  -right-> Student :does exam <
+    RegularExamResult -> "0..1" RegularExam
+
+
+    Course *-- "0..*" RegularExam
+    Course *-- "0..*" FormativeExam
+
+    note bottom: responsible for auto-correcting\nand grading the exam
+
+    Teacher -->  RegularExam
+
+    FormativeExamSpecification <-- FormativeExam
+    FormativeExamSpecification --> ValidateFormativeExamSpecification
+
+    RegularExamSpecification --> ValidateRegularExamSpecification
+
+    QuestionSpecification --> ValidateQuestionSpecification
+}
+
+package BoardPackage <<Rectangle>> {
+    class ShareBoardService <<Service>>
+    package BOARD <<Aggregate>> {
+
+        entity Board <<root>> <<Entity>>{
+            - MaxCollumns
+            - MaxRows
+        }
+        class BoardTitle <<value object>>
+
+        enum BoardStatus <<enum>>{
+            - created
+            - shared
+            - archived
+        }
+
+        entity BoardRow <<Entity>>{
+            - rowId
+            - rowTitle
+        }
+
+        entity BoardCollumn  <<Entity>>{
+            - collumnId
+            - collumnTitle
+        }
+
+        entity Cell <<Entity>>{
+        }
+
+        abstract CellHistory<<abstract>>{
+            - TimeStamp
+            -postIt
+        }
+        note left : stores every post-it that \nis created/modified
+
+        class  CreatePostitHistory <<value object>>{
+            - timeStamp
+            - postIt
+        }
+        class  UpdatePostitHistory <<value object>>{
+          - timeStamp
+          - postIt
+        }
+
+        class  UndoPostitHistory <<value object>>{
+            - timeStamp
+            - postIt
+        }
+        class  MovePostitHistory <<value object>>{
+            - timeStamp
+            - postIt
+        }
+
+
+        entity PostIt <<Entity>> {
+            - postItId
+        }
+        note right: Image or text
+
+        enum TypeOfContent <<enum>>{
+            - text
+            - image
+        }
+
+
+        class NewChangeEvent <<Event>>
+        note bottom : event triggered when\ncell content is modified
+    }
+
+    package BOARDPARTICIPANT <<Aggregate>> {
+        entity  BoardParticipant <<Entity>>
+        enum Permissions <<enum>>{
+            - read
+            - write
+        }
+        note right :responsible for sharing boards
+
+    }
+
+    Board *-up- "*" BoardRow
+    Board *-up- "*" BoardCollumn
+    Board --> BoardStatus
+    Board --> BoardTitle
+    Board *--> "1..*" Cell
+    Board <-- SystemUser : admin
+
+    Board --> ShareBoardService
+    BoardParticipant --> ShareBoardService
+    Cell "1" o-- "0..1" PostIt
+    Cell -> BoardCollumn
+    Cell -> BoardRow
+
+    BoardParticipant --> Board
+    BoardParticipant --> "*"  SystemUser
+    BoardParticipant -->  Permissions
+
+    PostIt --> BoardParticipant : owns <
+    PostIt --> TypeOfContent
+
+    NewChangeEvent <- Cell
+
+    Cell *-up- "0..*" CellHistory
+    CellHistory <-up- MovePostitHistory
+    CellHistory <-up- UndoPostitHistory
+    CellHistory <-up- CreatePostitHistory
+    CellHistory <-up- UpdatePostitHistory
+
+}
+
+package EventPackage <<Rectangle>> {
+
+
+
+    package TIMETABLE <<Aggregate>> {
+
+        entity Timetable <<root>> <<entity>>{
+        }
+        note right : event access, timetable stores\nN RecurringPattern or 1(?)\nfor each user
+
+        Timetable "*" o- "1" SystemUser
+
+    }
+
+    package EVENT <<Aggregate>> {
+
+        class Exception{
+            -period
+        }
+
+        class RescheduleEventService <<Service>>
+        Exception --> RescheduleEventService
+
+        entity RecurringPattern <<entity>>{
+            -endDate
+            -startDate
+            -dayOfTheWeek
+            -startTime
+            -endTime
+        }
+        class RescheduleEventService <<Service>>
+
+        enum RecurringFrequency <<enum>>{
+            - weekly
+            - once
+        }
+
+        RecurringPattern --> RecurringFrequency
+    }
+
+    class CheckAvailabilityService<<Service>>
+    note right: checks if an user is available\n for the given RecurringPattern
+
+    package LECTURE <<Aggregate>>{
+        entity Lecture <<root>> <<entity>> {
+        }
+        enum LectureType {
+            -regular
+            -extra
+        }
+
+        entity LectureParticipant <<entity>> {
+
+        }
+
+        Lecture --> LectureType
+        Course "1" ----> "*" Lecture
+    }
+
+
+    package MEETING <<Aggregate>> {
+
+        entity Meeting <<root>> <<Entity>>
+
+        class MeetingService <<Service>>
+        note right: responsible for managing\n meetings between users
+
+
+        Meeting -> MeetingService
+
+    }
+    package MEETINGPARTICIPANT <<Aggregate>> {
+        entity MeetingParticipant <<Entity>>
+        MeetingParticipant "1" -> "*" SystemUser
+        MeetingParticipant  ->  ParticipantStatus
+        MeetingParticipant "*" --up> "1" Meeting
+
+        enum ParticipantStatus {
+            - accepted
+            - rejected
+            - pending
+        }
+
+    }
+
+    Timetable --> CheckAvailabilityService
+    Timetable *- "0..*" RecurringPattern
+
+    RecurringPattern --> CheckAvailabilityService
+    RecurringPattern *-- "*" Exception
+
+    Lecture --> Teacher : teaches
+    Lecture *- "1..*" LectureParticipant
+    LectureParticipant o-- Student
+
+
+    Meeting  ->  SystemUser : administrates
+
+    Lecture -down-> RecurringPattern
+    Meeting -down-> RecurringPattern
+}
+
+@enduml

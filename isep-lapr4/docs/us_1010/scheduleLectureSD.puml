@@ -1,0 +1,57 @@
+@startuml
+
+skinparam packageStyle rect
+skinparam shadowing false
+
+actor Teacher as Actor
+participant ScheduleLectureUI as UI <<presentation>> order 1
+participant ScheduleLectureController as Controller <<application>> order 2
+participant "lecture:\nLecture" as lecture <<domain>> order 3
+participant "recurringPattern:\nRecurringPattern" as Pattern <<domain>> order 4
+participant "participant:\nlectureParticipant" as lectureParticipant <<domain>> order 5
+database TeacherRepository as teacherRepo <<repository>> order 8
+database StudentRepository as studentRepo <<repository>> order 8
+database LectureRepository as lectureRepo <<repository>> order 9
+database LectureParticipantRepo as participantRepo <<repository>> order 10
+participant CheckAvailabiltyService as AvailService <<application>> order 11
+
+
+Actor -> UI : create lecture
+activate UI
+    UI -> Controller : choose course
+    Actor <-- UI : show courses teaches\n by teacher
+    UI -> Controller : create
+
+    deactivate Controller
+    Actor <-- UI : ask user information
+    Actor -> UI : startDate, endDate,\n startTime, duration
+    UI -> Controller : createLectures(startDate, \nendDate, startTime, duration)
+    activate Controller
+            Controller -> lecture : createLectures(startDate, endDate, \nstartTime, duration)
+            activate lecture
+                lecture -> Pattern : buildPattern(startDate,endDate, \nstartTime, duration)
+            Controller <-- lecture : lecture
+            deactivate lecture
+
+            Controller --> UI : success of operation
+            UI -> Controller : schedule(enrolled
+            Controller -> AvailService : checkAvailabilityByUser(teacher, recurringPattern)
+            loop for each students enrolled in course
+                Controller -> participantRepo : createParticipant(student,lecture)
+
+
+            end
+
+            Actor <-- UI : students
+
+
+    Controller -> AvailService : schedule(present,recurringPattern)
+    deactivate AvailService
+
+    UI <-- Controller : lecture
+    deactivate Controller
+Actor <-- UI : display Schedule Success
+deactivate UI
+
+@enduml
+

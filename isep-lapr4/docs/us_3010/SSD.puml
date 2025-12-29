@@ -1,0 +1,11 @@
+@startuml
+actor Client as client
+actor Server as server
+
+
+client -> server : listBoardsUserOwnsNotArchived()
+client <-- server :boardsOwnedNotArchived
+client -> server : archivedBoards(board)
+note right :archives the board\n,sent back the list of\nboards in archived state
+client <-- server : boardsArchived
+@enduml

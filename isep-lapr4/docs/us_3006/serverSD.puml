@@ -1,0 +1,95 @@
+@startuml
+
+actor SBPServerApp as server
+
+
+participant CreatePostItHandler as handler
+participant SBProtocol as sbp
+participant Client as c_user
+participant BoardService as b_svc
+participant Cell as cell
+participant PostIt as postit
+participant Board as b
+participant NewChangeEvent as nce
+participant EventPublisher as ep
+
+activate server
+server ->  handler: create(sock,codeRequest)
+    note right : -receives a socket and SBProtocol codeRequest\n-create service
+    activate handler
+
+    deactivate handler
+
+
+
+    server -> handler : run()
+    note right : create DataInputStream as "inS"\ncreate DataOutputStream as "outS"
+
+    activate handler
+        handler -> c_user : user = getUserLoggedIn()
+        activate c_user
+        deactivate c_user
+
+        handler -> b_svc : boardsUserCanWrite(user)
+        activate b_svc
+            b_svc -> handler : boards
+        deactivate b_svc
+
+
+        handler -> sbp : create()
+        activate sbp
+        note right of handler: appends all boards into string
+            handler -> sbp : send(outS)
+        deactivate sbp
+
+        handler -> sbp : receiveText = create(inS)
+        activate sbp
+            sbp --> handler : content
+            note right : content:\n-board title\n-position in board to create Post-It\n-content of Post-It
+        deactivate sbp
+
+        note right of handler: SBPServerApp as boards ,get board with boardTitle
+        handler -> handler : checkIfCellIsOccupied(optBoard,position)
+
+
+        handler -> cell : hasPostIt()
+        activate cell
+            cell --> handler : true/false
+        deactivate cell
+
+        handler -> postit : postit = create(user, postItdata)
+        note right : postItdata string
+        activate postit
+        deactivate postit
+
+        handler -> b : addPostIt(row,column,postit)
+        activate b
+            b --> handler : true/false
+        deactivate b
+
+
+        handler -> nce : event = create(boardTitle,receiveText)
+        activate nce
+        deactivate nce
+
+        handler -> ep : publish(event)
+        activate ep
+        deactivate ep
+
+        handler -> sbp : create()
+        activate sbp
+            note right : send success of the operation
+            handler -> sbp : send(outS)
+
+deactivate handler
+
+
+
+
+
+
+
+
+@enduml
+
+

@@ -1,0 +1,150 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+skinparam classAttributeIconSize 0
+skinparam padding 2
+skinparam ranksep 100
+skinparam classFontSize 18
+
+
+interface MessageProtocol
+interface BoardParticipantRepository
+{
+    +withPermission(SystemUser user, BoardParticipantPermissions perm)
+}
+
+class CreatePostItUI
+{
+    -chooseFile()
+}
+
+class CreatePostItController
+{
+ +isCellIdValid(String arr, int numRows, int numColumns)
+ +canCreatePostIt()
+ +getBoardsList()
+ +createPostIt(String str)
+ +createBoardPositionTextString(String boardChosen, String position, String text)
+}
+
+class CreatePostItHandler
+{
+    +run()
+    -checkIfCellIsOccupied(Board board, String alterPosition)
+    -getStringBuilder()
+    -checkIfAllCellsAreOccupied(Board board)
+}
+
+class SBProtocol
+{
+ + setCode(int code)
+ + setContentFromString(String cStr)
+ + send(DataOutputStream out)
+ + getContentAsString()
+}
+
+class MenuRequest
+{
+    +run()
+}
+
+class SBPServerApp
+{
+    +{static}Map<InetAddress, Client> activeAuths
+    +{static}Map<BoardTitle, Board> boards
+}
+
+class SBPClientApp
+{
+}
+
+
+
+class Client
+{
+    +getUserLoggedIn()
+}
+
+
+class BoardService
+{
+    +boardsUserCanWrite(SystemUser owner)
+}
+
+class MainMenu
+{
+    - buildMainMenu()
+}
+
+class Board
+{
+   +getCell(int row, int column)
+   +addPostIt(int row, int column, PostIt postIt)
+}
+
+class Cell
+{
+    +addPostIt(PostIt postIt)
+}
+
+class PostIt {
+}
+
+class NewChangeEvent
+{
+    - String board
+    - SBProtocol message
+}
+
+abstract class AbstractUI
+{
+}
+
+abstract class BaseApplication
+
+interface Runnable
+
+SBPServerApp o-- Client
+'extends --|>
+MainMenu -up-|> AbstractUI
+CreatePostItUI -up-|> AbstractUI
+SBPClientApp -up-|> BaseApplication
+SBPServerApp -up-|> BaseApplication
+MenuRequest --|> Thread
+
+
+'depends on(imports)  -->
+CreatePostItUI --> "1" CreatePostItController
+CreatePostItController --> "*" SBProtocol
+
+
+CreatePostItHandler --> "*" SBProtocol
+
+
+
+
+CreatePostItHandler --> "1" BoardService
+CreatePostItHandler --> "1" Board
+
+SBPClientApp --> "1" MainMenu
+MainMenu --> "1" CreatePostItUI
+SBPServerApp --> "1" MenuRequest
+MenuRequest --> "1" CreatePostItHandler
+MenuRequest -up-> "1" SBProtocol
+
+
+Board --> "*" Cell
+Cell --> "1" PostIt
+
+BoardService --> "1" BoardParticipantRepository
+
+SBPServerApp ----> "*" Board
+
+CreatePostItHandler --> "1" NewChangeEvent
+
+'implements ..|>
+SBProtocol ..|> MessageProtocol
+Thread ..|> Runnable
+CreatePostItHandler ..|> Runnable
+
+@enduml

@@ -1,0 +1,55 @@
+@startuml
+
+skinparam packageStyle rect
+skinparam shadowing false
+
+actor Manager as Actor
+participant CreateCourseUI as UI <<presentation>> order 1
+participant CreateCourseController as Controller <<application>> order 2
+participant PersistenceContext as Persistence <<persistence>> order 3
+participant RepositoryFactory as Fact <<factory>> order 4
+participant CourseRepository as Repo <<repository>> order 5
+participant CreateCourseDTO as dto <<DTO>> order 6
+participant CourseFactory as factory <<Factory>> order 7
+participant "course:Course" as Course <<domain>> order 8
+
+Actor --> UI : create Course
+activate UI
+    UI --> Controller : create
+    activate Controller
+        Controller --> Persistence : repositories()
+
+        activate Persistence
+            Persistence --> Fact : courses()
+            activate Fact
+                Fact --> Repo : create()
+                activate Repo
+                deactivate Repo
+            deactivate Fact
+        deactivate Persistence
+    deactivate Controller
+deactivate UI
+
+Actor --> UI : types title, code,\ndescription,\nduration, capacity
+activate UI
+    UI --> dto : create
+    activate dto
+    deactivate dto
+
+    UI --> Controller : addCourse(dto)
+    activate Controller
+        Controller --> factory : build(dto)
+        activate factory
+            factory --> Course : create()
+            ' note right of Course: Set the all the information
+            activate Course
+            deactivate Course
+        deactivate factory
+
+        Controller --> Repo : saveCourse(course)
+        activate Repo
+        deactivate Repo
+    deactivate Controller
+deactivate UI
+
+@enduml

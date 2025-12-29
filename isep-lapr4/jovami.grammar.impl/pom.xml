@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>eapli</groupId>
+        <artifactId>base</artifactId>
+        <relativePath>../pom.xml</relativePath>
+        <version>1.4.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>jovami.grammar.impl</artifactId>
+    <packaging>jar</packaging>
+
+    <name>jovami.grammar.impl</name>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>eapli</groupId>
+            <artifactId>base.core</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4-maven-plugin</artifactId>
+                <version>4.12.0</version>
+                <configuration>
+                    <arguments>
+                        <argument>-visitor</argument>
+                        <argument>-no-listener</argument>
+                    </arguments>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>rexam</id>
+                        <goals>
+                            <goal>antlr4</goal>
+                        </goals>
+                        <configuration>
+                            <sourceDirectory>src/main/antlr4/exam</sourceDirectory>
+                            <outputDirectory>${project.basedir}/src/main/java/jovami/grammar/impl/antlr/exam/autogen</outputDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>fexam</id>
+                        <goals>
+                            <goal>antlr4</goal>
+                        </goals>
+                        <configuration>
+                            <sourceDirectory>src/main/antlr4/formativeexam</sourceDirectory>
+                            <outputDirectory>${project.basedir}/src/main/java/jovami/grammar/impl/antlr/formativeexam/autogen</outputDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>question</id>
+                        <goals>
+                            <goal>antlr4</goal>
+                        </goals>
+                        <configuration>
+                            <sourceDirectory>src/main/antlr4/question</sourceDirectory>
+                            <outputDirectory>${project.basedir}/src/main/java/jovami/grammar/impl/antlr/question/autogen</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

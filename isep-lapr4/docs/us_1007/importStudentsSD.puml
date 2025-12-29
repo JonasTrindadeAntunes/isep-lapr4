@@ -1,0 +1,132 @@
+@startuml
+'http://plantuml.com/skinparam.html
+
+actor Manager as Actor
+participant CSVLoaderStudentsUI as UI <<presentation>>
+participant CSVLoaderStudentsController as controller <<application>>
+participant PersistenceContext as persistence <<persistence>>
+participant Repositoryfactory as factory <<factory>>
+participant BulkEnrollStudentsService as service <<service>>
+database StudentRepository as srepo <<repository>>
+database CourseRepository as crepo <<repository>>
+database EnrollmentRepository as erepo <<repository>>
+participant CSVHeader as csvheader <<enum,utils>>
+participant CSVReader as csvreader <<utils>>
+participant FileInputStream as fileinput
+participant EnrollmentParser as parser <<application>>
+participant MecanographicNumber as meca <<domain>>
+participant CourseID as courseID <<domain>>
+participant Enrollment as enroll <<domain>>
+
+
+
+Actor -> UI: Import csv student file
+activate Actor
+activate UI
+    UI -> controller: create
+    activate controller
+        controller -> persistence : repositories()
+        activate persistence
+            persistence -> factory : create
+            activate factory
+            deactivate factory
+            persistence -> controller : factory
+        deactivate persistence
+
+
+        controller -> service : create(factory)
+        activate service
+            service -> srepo : create
+                activate srepo
+                    srepo ->service : studentRepository
+                deactivate srepo
+            service -> crepo : create
+                activate crepo
+                    crepo ->service : courseRepository
+                deactivate crepo
+            service -> erepo : create
+                activate erepo
+                    erepo ->service : enrollmentRepository
+                deactivate erepo
+        deactivate service
+    deactivate controller
+    UI --> Actor : asks manager to type file path
+deactivate UI
+    Actor -> UI : types file path
+activate UI
+    UI -> controller: file(file)
+    activate controller
+        controller -> csvheader : CSVHeader.ENROLLMENTS
+        activate csvheader
+        deactivate csvheader
+        controller -> csvreader : readCSV(file,CSVHeader.ENROLLMENTS)
+        activate csvreader
+            csvreader -> fileinput : create
+            activate fileinput
+            deactivate fileinput
+
+            csvreader -> csvreader : readCSV(stream,header)
+            csvreader -> controller : ListOfArrayOfStrings
+
+        deactivate csvreader
+
+        controller -> parser : create
+        activate parser
+
+        controller ->parser : parse(ListOfArrayOfStrings)
+
+            parser -> meca : create(mecanographicnumber)
+            activate meca
+            deactivate meca
+            parser -> courseID : valueOf(courseID)
+            activate courseID
+            courseID -> parser : courseID
+            deactivate courseID
+            parser -> controller : parsedList
+
+        deactivate parser
+
+        controller -> service : bulkEnroll(parsedList)
+        activate service
+
+            service -> srepo : ofIdentity(mecanographicnumber)
+            activate srepo
+                srepo -> service : student
+            deactivate srepo
+
+            service -> crepo : ofIdentity(courseID)
+            activate crepo
+                 crepo -> service : course
+            deactivate crepo
+
+            service -> enroll : create(course,student)
+            activate enroll
+            deactivate enroll
+
+            service -> erepo : save(enrollment)
+            activate erepo
+            deactivate erepo
+        deactivate service
+
+
+
+    deactivate controller
+
+    UI -> controller :listAllEnrollmentsInAllCourses()
+    activate controller
+        controller -> service :listAllEnrollmentsInAllCourses()
+        activate service
+            service -> erepo : findAll()
+            activate erepo
+                erepo -> service : enrollments
+            deactivate erepo
+            service -> controller :enrollments
+        deactivate service
+        controller -> UI : enrollments
+    deactivate controller
+
+    UI --> Actor : shows list of all enrollments
+    UI --> Actor : informs sucess of the operation
+deactivate UI
+deactivate Actor
+@enduml
